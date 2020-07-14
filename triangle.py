@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from vertex import Vertex
+import time
 
 class Triangle:
 
@@ -16,7 +17,7 @@ class Triangle:
 
 
 	def project_to_XY(self, focal_distance):
-
+		"""Returns new triangle projected to an XY plane focal_distance away from the origin"""
 		new_vertices = np.array([], dtype = object)
 
 		for vertex in self.vertices:
@@ -28,38 +29,58 @@ class Triangle:
 
 		return(Triangle(new_vertices))
 
+
 	def morph(self, new_points):
 		"""Copies vertex colors over to new triangle"""
 		new_vertices = np.array([Vertex(new_points[i], self.vertices[i].color) for i in range(3)])
 		return Triangle(new_vertices)
 
 
+	def get_normals(self):
+		if  not hasattr(self, 'normals'):
+			points = np.delete(self.points(), 2, 1)
+			vs = [points[(i+1)%3] - points[i] for i in range(3)]
+			self.normals = [np.array([-vs[i][1], vs[i][0]]) for i in range(3)]
+		return self.normals
+
+
+	#Deprecated
 	def contains(self, point):
 		"""Checks weather a 2D point is inside the 2D projection of the triangle over the XY plane
 			point must be a one dimensional, length 2 numpy array"""
+		#Get only the x and y coordinates of points
 		points = np.delete(self.points(), 2, 1)
-
-		x_min = min([p[0] for p in points])
-		x_max = max([p[0] for p in points])
-		y_min = min([p[1] for p in points])
-		y_max = max([p[1] for p in points])
-
-		if point[0] > x_max or point[0] < x_min or point[1] > y_max or point[1] < y_min:
-			print("bbox fail")
-			return False
-
 		positions = []
 
 		for i in range(3):
-			v = points[(i+1)%3] - points[i]
-			n = np.array([-v[1], v[0]])
-
 			p = point - points[i]
+			d = self.get_normals()[i].dot(p)
 
-			d = n.dot(p)
-			print(n)
 			positions.append(np.sign(d))
 
 		return np.all([s >= 0 for s in positions]) or np.all([s <= 0 for s in positions])
-		#TODO, check whether floating point error correction for points on line is necesary
-		#TODO, implement top left rule
+		#TODO: check whether floating point error correction for points on line is necesary
+		#TODO: implement top left rule
+
+
+	def raster_matrix(self, matrix):
+		#TODO: implement tiling optimization, maybe remove matrix dependence and let triangle handle it (would need to return rast matrix origin)
+
+		points = np.delete(self.points(), 2, 1)
+
+		dif1 = matrix - points[0]
+		slice1 = dif1.dot(self.get_normals()[0])
+		rast1 = slice1 >= 0 
+		rast1b = slice1 <= 0 
+
+		dif2 = matrix - points[1]
+		slice2 = dif2.dot(self.get_normals()[1])
+		rast2 = slice2 >= 0 
+		rast2b = slice2 <= 0 
+
+		dif3 = matrix - points[2]
+		slice3 = dif3.dot(self.get_normals()[2])
+		rast3 = slice3 >= 0 
+		rast3b = slice3 <= 0 
+
+		return (rast1 & rast2 & rast3) | (rast1b & rast2b & rast3b)

@@ -2,8 +2,12 @@ import numpy as np
 from PIL import Image
 import math
 import triangle
+import time
 
 class Randall:
+
+	pixel_grid_builder = np.vectorize(lambda i, j, k: i + 0.5 if k == 0 else j + 0.5)
+
 
 	def __init__(self, im_width, im_height, focal_distance = 10, fov = 90):
 		self.world_space = np.array([], dtype = object)
@@ -49,8 +53,6 @@ class Randall:
 				new_point = scaling_matrix.dot(point + translation_matrix)
 				im_points = np.append(im_points, [new_point], 0)
 			im_triangle = triangle.morph(im_points)
-			print(triangle)
-			print(im_triangle)
 
 
 			x_min = math.floor(min(p[0] for p in im_points))
@@ -58,17 +60,32 @@ class Randall:
 			y_min = math.floor(min(p[1] for p in im_points))
 			y_max = math.ceil(max(p[1] for p in im_points))
 
-			for i in range(x_min, x_max):
+			s_time = time.time()
+
+			"""for i in range(x_min, x_max):
 				for j in range(y_min, y_max):
 					pixel_center = np.array([i + 0.5, j + 0.5])
 
 					if im_triangle.contains(pixel_center):
-					 	print('bum!')
-					 	depth = 1#im_triangle.interpolateDepth(pixel_center)
+					 	depth = 1 #im_triangle.interpolateDepth(pixel_center)
 					 	if depth < self.z_buffer[i, j]:
-					 		self.image_buffer[i, j] = np.zeros(3)#triangle.interpolateColor(pixel_center)
+					 		self.image_buffer[i, j] = np.zeros(3) #triangle.interpolateColor(pixel_center)
 					 		self.z_buffer[i, j] = depth
-					#TODO: anti-aliasing (multisampling?)
+					#TODO: anti-aliasing (multisampling?) """
+
+			bbox = np.fromfunction(self.pixel_grid_builder, (x_max - x_min, y_max - y_min, 2)) + (x_min, y_min)
+			rast = im_triangle.raster_matrix(bbox)
+			print(rast)
+
+			color = np.zeros((x_max - x_min, y_max - y_min, 3))
+			#rast_color = color * np.expand_dims(rast, 2) + np.invert(np.expand_dims(rast, 2)) * 255
+			self.image_buffer[x_min: x_max, y_min: y_max][rast] = color[rast]
+
+
+			e_time = time.time() - s_time
+			print(e_time)
+
+
 	def display(self):
 		img = Image.fromarray(self.image_buffer, 'RGB')
 		img.save('test.png')
