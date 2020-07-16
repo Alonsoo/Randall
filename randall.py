@@ -45,7 +45,7 @@ class Randall:
 
 			#transform from projection space to image space
 			im_points = np.zeros([0,3], dtype = float)
-			for point in triangle.points():
+			for point in triangle.points:
 				translation_matrix = np.array([self.viewport_width/2, -self.viewport_height/2, 0])
 				scaling_matrix = np.array([[self.im_width/self.viewport_width, 0,							         0], 
 										   [0, 						  	       -self.im_height/self.viewport_height, 0], 
@@ -60,7 +60,7 @@ class Randall:
 			x_max = math.ceil (max(p[0] for p in im_points))
 			y_min = math.floor(min(p[1] for p in im_points))
 			y_max = math.ceil (max(p[1] for p in im_points))
-			
+
 			s_time = time.time()
 
 			#TODO: anti-aliasing (multisampling?)
