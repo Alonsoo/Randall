@@ -11,9 +11,6 @@ class Triangle:
 		self.texture_coordinates = np.array(texture_coordinates)
 
 
-	"""def points(self):
-		return np.array([v.point for v in self.vertices])"""
-
 	def __str__(self):
 		return str(self.points())
 
@@ -28,13 +25,11 @@ class Triangle:
 										  [0, s, 0],
 										  [0, 0, 1]])
 			new_points = np.append(new_points, [projection_matrix.dot(point)], 0)
-			#new_vertices = np.append(new_vertices, [vertex.morph(projection_matrix.dot(vertex.point))], 0)
 		return(self.morph(new_points))
 
 
 	def morph(self, new_points):
 		"""Copies vertex attributes over to new triangle"""
-		#new_vertices = np.array([self.vertices[i].morph(new_points[i]) for i in range(3)])
 		return Triangle(new_points, self.colors, self.texture, self.texture_coordinates)
 
 
@@ -83,24 +78,24 @@ class Triangle:
 		color = np.zeros((grid.shape[0], grid.shape[1], 3))
 		depth = np.full((grid.shape[0], grid.shape[1]), np.inf)
 
-		for i in range(grid.shape[0]):
-			for j in range(grid.shape[1]):
-				l = T_inv.dot(np.array([grid[i][j][0] - points[2][0], grid[i][j][1] - points[2][1]]))
-				l1, l2 = l[0], l[1]
-				l3 = 1 - l1 - l2
+		#Compute barycentric coordinates for points in grid
+		ls = np.zeros((grid.shape[0], grid.shape[1], 3))
+		ls[:, :, 0:2] = np.tensordot(grid - np.delete(points[2], 2), T_inv, (2, 1))
+		ls[:, :, 2] = 1 -ls[:, :, 0] - ls[:, :, 1]
 
-				g1, g2, g3 = l1/points[0][2], l2/points[1][2],  l3/points[2][2]
+		gs = ls / points[ : , 2]
 
-				z = 1/(g1 + g2 + g3)
-				depth[i, j] = z
+		depth = 1/np.sum(gs, axis = 2)
 
-				if self.texture == None:
-					#Interpolate color
-					color[i, j] = z * (self.colors[0] * g1 + self.colors[1] * g2 + self.colors[2] * g3)
-				else:
-					#Interpolate texture coordinates
-					u = z * (self.texture_coordinates[0] * g1 + self.texture_coordinates[1] * g2 + self.texture_coordinates[2] * g3)
-					color[i, j] = self.texture.getColor(u[0], u[1])
+		us = np.zeros((grid.shape[0], grid.shape[1], 2))
+
+		if self.texture == None:
+			color = depth * gs.dot(self.colors)
+		else:
+			m = np.insert(np.expand_dims(gs, 3), 1, gs, axis = 3)
+			f = np.tile(self.texture_coordinates, (grid.shape[0], grid.shape[1], 1, 1))
+			us = np.insert(np.expand_dims(depth, 2), 1, depth, axis = 2) * np.sum(m * f, axis = 2 )
+			color = self.texture.getColors(us)
 
 
 		return (depth, color)
