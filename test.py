@@ -1,7 +1,6 @@
 import numpy as np
 import randall
 import triangle
-from vertex import Vertex
 from PIL import Image
 from chessTexture import ChessTexture
 

@@ -55,13 +55,11 @@ class Randall:
 			im_triangle = triangle.morph(im_points)
 
 
-
 			x_min = math.floor(min(p[0] for p in im_points))
 			x_max = math.ceil (max(p[0] for p in im_points))
 			y_min = math.floor(min(p[1] for p in im_points))
 			y_max = math.ceil (max(p[1] for p in im_points))
 
-			s_time = time.time()
 
 			#TODO: anti-aliasing (multisampling?)
 
@@ -69,22 +67,42 @@ class Randall:
 			rast_mask = im_triangle.raster_matrix(bbox_grid)
 
 			depth, color = im_triangle.interpol_props(bbox_grid, rast_mask)
-			self.image_buffer[x_min: x_max, y_min: y_max][rast_mask] = color[rast_mask]
+			depth_mask = depth <= self.z_buffer[x_min:x_max, y_min:y_max]
+			mask = rast_mask & depth_mask
+			self.image_buffer[x_min: x_max, y_min: y_max][mask] = color[mask]
 
 
-			e_time = time.time() - s_time
-			print(e_time)
 
 
 	def display(self):
 		img = Image.fromarray(self.image_buffer, 'RGB')
-		img.save('test.png')
-		img.show()		
+		img.save('test.png')	
 
 
 
 	def render(self):
+
+		start_time = time.time()
+
+		s_time = time.time()
 		self.transform_world()
+		e_time = time.time() - s_time
+		print("World transform: ", e_time)
+
+		s_time = time.time()
 		self.project_space()
+		e_time = time.time() - s_time
+		print("Projection: ", e_time)
+
+		s_time = time.time()
 		self.rasterize()
+		e_time = time.time() - s_time
+		print("Rasterization: ", e_time)
+
+		s_time = time.time()
 		self.display()
+		e_time = time.time() - s_time
+		print("Display: ", e_time)
+
+		total_time = time.time() - start_time
+		print("Total: ", total_time)
