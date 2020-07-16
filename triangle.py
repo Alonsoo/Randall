@@ -1,7 +1,6 @@
 import numpy as np
 import math
 from vertex import Vertex
-import time
 
 class Triangle:
 
@@ -25,42 +24,23 @@ class Triangle:
 			projection_matrix = np.array([[s, 0, 0],
 										  [0, s, 0],
 										  [0, 0, 1]])
-			new_vertices = np.append(new_vertices, [Vertex(projection_matrix.dot(vertex.point), vertex.color)], 0)
+			new_vertices = np.append(new_vertices, [vertex.morph(projection_matrix.dot(vertex.point))], 0)
 
 		return(Triangle(new_vertices))
 
 
 	def morph(self, new_points):
-		"""Copies vertex colors over to new triangle"""
-		new_vertices = np.array([Vertex(new_points[i], self.vertices[i].color) for i in range(3)])
+		"""Copies vertex attributes over to new triangle"""
+		new_vertices = np.array([self.vertices[i].morph(new_points[i]) for i in range(3)])
 		return Triangle(new_vertices)
 
 
 	def get_normals(self):
-		if  not hasattr(self, 'normals'):
+		if not hasattr(self, 'normals'):
 			points = np.delete(self.points(), 2, 1)
 			vs = [points[(i+1)%3] - points[i] for i in range(3)]
 			self.normals = [np.array([-vs[i][1], vs[i][0]]) for i in range(3)]
 		return self.normals
-
-
-	#Deprecated
-	def contains(self, point):
-		"""Checks weather a 2D point is inside the 2D projection of the triangle over the XY plane
-			point must be a one dimensional, length 2 numpy array"""
-		#Get only the x and y coordinates of points
-		points = np.delete(self.points(), 2, 1)
-		positions = []
-
-		for i in range(3):
-			p = point - points[i]
-			d = self.get_normals()[i].dot(p)
-
-			positions.append(np.sign(d))
-
-		return np.all([s >= 0 for s in positions]) or np.all([s <= 0 for s in positions])
-		#TODO: check whether floating point error correction for points on line is necesary
-		#TODO: implement top left rule
 
 
 	def raster_matrix(self, matrix):
@@ -84,3 +64,43 @@ class Triangle:
 		rast3b = slice3 <= 0 
 
 		return (rast1 & rast2 & rast3) | (rast1b & rast2b & rast3b)
+
+
+	def interpol_props(self, grid, rast_mask):
+
+		points = self.points()
+		#normal = self.get_plane_normal()
+
+		T = np.array([[points[0][0] - points[2][0], points[1][0] - points[2][0]], 
+			          [points[0][1] - points[2][1], points[1][1] - points[2][1]]])
+
+		T_inv = (1/np.linalg.det(T)) * np.array([[T[1,1], -T[0,1]],
+												 [-T[1,0], T[0,0]]])
+
+		color = np.zeros((grid.shape[0], grid.shape[1], 3))
+		depth = np.full((grid.shape[0], grid.shape[1]), np.inf)
+
+		for i in range(grid.shape[0]):
+			for j in range(grid.shape[1]):
+				l = T_inv.dot(np.array([grid[i][j][0] - points[2][0], grid[i][j][1] - points[2][1]]))
+				l1, l2 = l[0], l[1]
+				l3 = 1 - l1 - l2
+
+				g1, g2, g3 = l1/points[0][2], l2/points[1][2],  l3/points[2][2]
+
+
+				z = 1/(g1 + g2 + g3)
+				depth[i, j] = z
+
+				if self.vertices[0].texture == None:
+					color[i, j] = z * (self.vertices[0].color * g1 + self.vertices[1].color * g2 + self.vertices[2].color * g3)
+				else:
+					u = z * (self.vertices[0].texture_coordinates * g1 + self.vertices[1].texture_coordinates * g2 + self.vertices[2].texture_coordinates * g3)
+					color[i, j] = self.vertices[0].texture.getColor(u[0], u[1])
+
+
+
+				#z = l1 * points[0][2] + l2 * points[1][2] + l3 * points[2][2]
+				#color[i, j] = l1 * self.vertices[0].color + l2 * self.vertices[1].color + l3 * self.vertices[2].color
+
+		return (depth, color)

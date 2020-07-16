@@ -55,31 +55,21 @@ class Randall:
 			im_triangle = triangle.morph(im_points)
 
 
-			x_min = math.floor(min(p[0] for p in im_points))
-			x_max = math.ceil(max(p[0] for p in im_points))
-			y_min = math.floor(min(p[1] for p in im_points))
-			y_max = math.ceil(max(p[1] for p in im_points))
 
+			x_min = math.floor(min(p[0] for p in im_points))
+			x_max = math.ceil (max(p[0] for p in im_points))
+			y_min = math.floor(min(p[1] for p in im_points))
+			y_max = math.ceil (max(p[1] for p in im_points))
+			
 			s_time = time.time()
 
-			"""for i in range(x_min, x_max):
-				for j in range(y_min, y_max):
-					pixel_center = np.array([i + 0.5, j + 0.5])
+			#TODO: anti-aliasing (multisampling?)
 
-					if im_triangle.contains(pixel_center):
-					 	depth = 1 #im_triangle.interpolateDepth(pixel_center)
-					 	if depth < self.z_buffer[i, j]:
-					 		self.image_buffer[i, j] = np.zeros(3) #triangle.interpolateColor(pixel_center)
-					 		self.z_buffer[i, j] = depth
-					#TODO: anti-aliasing (multisampling?) """
+			bbox_grid = np.fromfunction(self.pixel_grid_builder, (x_max - x_min, y_max - y_min, 2)) + (x_min, y_min)
+			rast_mask = im_triangle.raster_matrix(bbox_grid)
 
-			bbox = np.fromfunction(self.pixel_grid_builder, (x_max - x_min, y_max - y_min, 2)) + (x_min, y_min)
-			rast = im_triangle.raster_matrix(bbox)
-			print(rast)
-
-			color = np.zeros((x_max - x_min, y_max - y_min, 3))
-			#rast_color = color * np.expand_dims(rast, 2) + np.invert(np.expand_dims(rast, 2)) * 255
-			self.image_buffer[x_min: x_max, y_min: y_max][rast] = color[rast]
+			depth, color = im_triangle.interpol_props(bbox_grid, rast_mask)
+			self.image_buffer[x_min: x_max, y_min: y_max][rast_mask] = color[rast_mask]
 
 
 			e_time = time.time() - s_time
