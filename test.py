@@ -5,6 +5,7 @@ from PIL import Image
 from chessTexture import ChessTexture
 
 rn = randall.Randall(512, 512, 10)
+rn.set_camera_position([0,0,0],[0,0,0])
 #ws = np.array([[[0,0,20], [5,10,10], [15, 0, 30]]])
 #vertices = np.array([Vertex([0, 0, 20]), Vertex([5, 10, 10]), Vertex([15, 0, 30])])
 #vertices = np.array([Vertex([0, 0, 10]), Vertex([100, 100, 10]), Vertex([100, 0, 10])])
@@ -26,6 +27,10 @@ texture_coordinates = [[0,0],[0,10],[10,10]]
 ws = np.array([triangle.Triangle(points, texture = texture, texture_coordinates = texture_coordinates)])
 
 rn.update_world_space(ws)
+#rn.render()
+for i in range (90):
+	rn.set_camera_position([0,0,0],[0,0,0])
+	rn.render()
 
 #print(rn.world_space[0])
 #print(rn.projection_space[0])

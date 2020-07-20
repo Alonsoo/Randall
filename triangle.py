@@ -13,6 +13,29 @@ class Triangle:
 	def __str__(self):
 		return str(self.points())
 
+	def translate(self, matrix):
+		return self.morph(self.points + matrix)
+
+	def rotate(self, angles):
+		sin_a, cos_a = math.sin(angles[0]), math.cos(angles[0])
+		sin_b, cos_b = math.sin(angles[1]), math.cos(angles[1])
+		sin_c, cos_c = math.sin(angles[2]), math.cos(angles[2])
+		x_rot = np.array([[1,     0,      0], 
+						  [0, cos_a, -sin_a],
+						  [0, sin_a,  cos_a]])
+
+		y_rot = np.array([[cos_b,  0, sin_b],
+						  [0,      1,     0],
+						  [-sin_b, 0, cos_b]]) #checar si este si esta bien ???
+
+		z_rot = np.array([[cos_c, -sin_c, 0], 
+						  [sin_c,  cos_c, 0],
+						  [0,      0,     1]])
+
+		R = z_rot.dot(y_rot.dot(x_rot))
+		new_points = [R.dot(p) for p in self.points]
+		return self.morph(new_points)
+
 
 	def project_to_XY(self, focal_distance):
 		"""Returns new triangle projected to an XY plane focal_distance away from the origin"""
