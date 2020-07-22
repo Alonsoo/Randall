@@ -45,6 +45,11 @@ class Randall:
 	def add_to_world_spce(self, shapes):
 		self.update_world_space(np.append(self.world_space, shapes))
 
+	def clear_world_space(self):
+		self.world_space = np.array([], dtype = object)
+
+	def draw_thing(self, thing):
+		self.add_to_world_spce(thing.place_in_world_space())
 
 	def transform_world(self):
 		for triangle in self.world_space:
@@ -94,20 +99,24 @@ class Randall:
 			mask = rast_mask & depth_mask
 
 			self.image_buffer[x_min: x_max, y_min: y_max][mask] = color[mask]
+			self.z_buffer[x_min: x_max, y_min: y_max][mask] = depth[mask]
 
 
 
 
 	def display(self):
-		#img = Image.fromarray(self.image_buffer, 'RGB')
+		#img2 = Image.fromarray(self.image_buffer, 'RGB')
 		img = ImageTk.PhotoImage(image=Image.fromarray(self.image_buffer))
 		self.canvas.create_image(0,0, anchor="nw", image=img)
 		self.canvas.pack()
 		self.tk_root.update()
 
+		#img2.save('test.png')
+
 
 
 	def render(self):
+
 		#Reset buffers
 		self.camera_space = np.array([], dtype = object)
 		self.projection_space = np.array([], dtype = object)
@@ -133,6 +142,7 @@ class Randall:
 
 		#s_time = time.time()
 		self.display()
+		self.clear_world_space()
 		#e_time = time.time() - s_time
 		#print("Display: ", e_time)
 
